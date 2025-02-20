@@ -1,6 +1,8 @@
 import React, { useState, useContext } from "react";
 import { AuthContext } from "../AuthContext";
 import { useNavigate } from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css";
+
 
 const Login = () => {
     const { login } = useContext(AuthContext);
@@ -11,62 +13,133 @@ const Login = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-
         try {
             const response = await fetch("http://localhost:5000/api/login", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
             });
 
             const data = await response.json();
             if (response.ok) {
                 login(data.token);
-                navigate("/"); // กลับไปหน้า Home
+                navigate("/");
             } else {
                 setError(data.message);
             }
         } catch (error) {
-            setError("Login failed. Try again.");
+            setError("❌ Login failed. Try again.");
         }
     };
 
     return (
-        <div className="container mt-5">
-            <h2 className="text-center mb-4">Login</h2>
-            {error && <p className="text-danger text-center">{error}</p>}
-            <form onSubmit={handleLogin} className="w-50 mx-auto p-4 border rounded shadow">
-                <div className="mb-3">
-                    <label htmlFor="email" className="form-label">Email</label>
-                    <input 
-                        type="email" 
-                        className="form-control" 
-                        id="email" 
-                        placeholder="Enter your email" 
-                        value={email} 
-                        onChange={(e) => setEmail(e.target.value)} 
-                        required 
-                    />
-                </div>
-                <div className="mb-3">
-                    <label htmlFor="password" className="form-label">Password</label>
-                    <input 
-                        type="password" 
-                        className="form-control" 
-                        id="password" 
-                        placeholder="Enter your password" 
-                        value={password} 
-                        onChange={(e) => setPassword(e.target.value)} 
-                        required 
-                    />
-                </div>
-                <button type="submit" className="btn btn-primary w-100">Login</button>
-            </form>
+        <div style={styles.container}>
+            <div 
+                style={styles.loginBox}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+            >
+                <h2 style={styles.title}>Sign In</h2>
+                {error && <p style={styles.error}>{error}</p>}
+                <form onSubmit={handleLogin}>
+                    <div style={styles.inputContainer}>
+                        <input 
+                            type="email" 
+                            placeholder="Email"
+                            value={email} 
+                            onChange={(e) => setEmail(e.target.value)} 
+                            required
+                            style={styles.input}
+                        />
+                    </div>
+                    <div style={styles.inputContainer}>
+                        <input 
+                            type="password" 
+                            placeholder="Password"
+                            value={password} 
+                            onChange={(e) => setPassword(e.target.value)} 
+                            required
+                            style={styles.input}
+                        />
+                    </div>
+                    <button 
+                        type="submit"
+                        style={styles.button}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                    >
+                        Sign In
+                    </button>
+                </form>
+                <p style={styles.signupText}>
+                    New here? <a href="/register" style={styles.link}>Sign up now</a>
+                </p>
+            </div>
         </div>
-
     );
+};
+
+// ✅ ธีมมืดแบบเรียบง่าย ไม่มี Glow หรือเอฟเฟกต์พิเศษ
+const styles = {
+    container: {
+        width: "100%",
+        height: "100vh",
+        backgroundColor: "#121212",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    loginBox: {
+        backgroundColor: "#1e1e1e",
+        padding: "2.5rem",
+        borderRadius: "10px",
+        maxWidth: "380px",
+        width: "100%",
+        textAlign: "center",
+    },
+    title: {
+        color: "#ffcc00",
+        fontSize: "1.8rem",
+        fontWeight: "bold",
+        marginBottom: "1.5rem",
+    },
+    inputContainer: {
+        marginBottom: "1rem",
+    },
+    input: {
+        width: "100%",
+        padding: "12px",
+        borderRadius: "8px",
+        border: "1px solid #333",
+        backgroundColor: "#252525",
+        color: "#fff",
+        fontSize: "1rem",
+        outline: "none",
+    },
+    button: {
+        width: "100%",
+        padding: "12px",
+        borderRadius: "8px",
+        border: "none",
+        backgroundColor: "#ff9900",
+        color: "#fff",
+        fontSize: "1rem",
+        fontWeight: "bold",
+        cursor: "pointer",
+        transition: "all 0.3s ease",
+    },
+    signupText: {
+        color: "#ccccff",
+        marginTop: "1rem",
+        fontSize: "0.9rem",
+    },
+    link: {
+        color: "#ffcc00",
+        textDecoration: "none",
+        fontWeight: "bold",
+        transition: "color 0.3s",
+    },
 };
 
 export default Login;

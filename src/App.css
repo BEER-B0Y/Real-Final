@@ -36,3 +36,30 @@
     transform: rotate(360deg);
   }
 }
+
+.custom-navbar {
+  background: linear-gradient(90deg, #1e1e2f, #252539);
+  padding: 10px 0;
+}
+
+.custom-navbar .nav-link {
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 10px 15px;
+  transition: 0.3s ease;
+}
+
+.custom-navbar .nav-link:hover {
+  color: #ffcc00 !important;
+}
+
+.btn-rounded {
+  border-radius: 25px;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.btn-rounded:hover {
+  background-color: #ffcc00 !important;
+  color: #000 !important;
+}

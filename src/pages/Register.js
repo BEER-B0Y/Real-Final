@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css";
+import { motion } from "framer-motion";
 
 function Register() {
   const [fullName, setFullName] = useState("");
@@ -12,58 +14,111 @@ function Register() {
     e.preventDefault();
     try {
       await axios.post("http://localhost:5000/api/register", { fullName, email, password });
-      alert("Registration successful!");
+      alert("✅ Registration successful!");
       navigate("/login");
     } catch (err) {
-      alert("Error registering");
+      alert("❌ Error registering. Please try again.");
     }
   };
 
   return (
-    <div className="container mt-5">
-    <h2 className="text-center mb-4">Register</h2>
-    <form onSubmit={handleRegister} className="w-50 mx-auto p-4 border rounded shadow">
-        <div className="mb-3">
-            <label htmlFor="fullName" className="form-label">Full Name</label>
-            <input 
-                type="text" 
-                className="form-control" 
-                id="fullName" 
-                placeholder="Enter your full name" 
-                value={fullName} 
-                onChange={(e) => setFullName(e.target.value)} 
-                required 
+    <div style={styles.container}>
+      <div style={styles.registerBox}>
+        <h2 style={styles.title}>Sign Up</h2>
+        <form onSubmit={handleRegister}>
+          <div style={styles.inputContainer}>
+            <input
+              type="text"
+              placeholder="Full Name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+              style={styles.input}
             />
-        </div>
-        <div className="mb-3">
-            <label htmlFor="email" className="form-label">Email</label>
-            <input 
-                type="email" 
-                className="form-control" 
-                id="email" 
-                placeholder="Enter your email" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
-                required 
+          </div>
+          <div style={styles.inputContainer}>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              style={styles.input}
             />
-        </div>
-        <div className="mb-3">
-            <label htmlFor="password" className="form-label">Password</label>
-            <input 
-                type="password" 
-                className="form-control" 
-                id="password" 
-                placeholder="Enter your password" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                required 
+          </div>
+          <div style={styles.inputContainer}>
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              style={styles.input}
             />
-        </div>
-        <button type="submit" className="btn btn-primary w-100">Register</button>
-    </form>
-</div>
-
+          </div>
+          <motion.button
+            type="submit"
+            style={styles.button}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Register
+          </motion.button>
+        </form>
+      </div>
+    </div>
   );
 }
+
+// ✅ ธีมมืดแบบเรียบง่าย ไม่มี Glow หรือเอฟเฟกต์พิเศษ
+const styles = {
+  container: {
+    width: "100%",
+    height: "100vh",
+    backgroundColor: "#121212",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  registerBox: {
+    backgroundColor: "#1e1e1e",
+    padding: "2.5rem",
+    borderRadius: "10px",
+    maxWidth: "380px",
+    width: "100%",
+    textAlign: "center",
+  },
+  title: {
+    color: "#ffcc00",
+    fontSize: "1.8rem",
+    fontWeight: "bold",
+    marginBottom: "1.5rem",
+  },
+  inputContainer: {
+    marginBottom: "1rem",
+  },
+  input: {
+    width: "100%",
+    padding: "12px",
+    borderRadius: "8px",
+    border: "1px solid #333",
+    backgroundColor: "#252525",
+    color: "#fff",
+    fontSize: "1rem",
+    outline: "none",
+  },
+  button: {
+    width: "100%",
+    padding: "12px",
+    borderRadius: "8px",
+    border: "none",
+    backgroundColor: "#ff9900",
+    color: "#fff",
+    fontSize: "1rem",
+    fontWeight: "bold",
+    cursor: "pointer",
+    transition: "all 0.3s ease",
+  },
+};
 
 export default Register;

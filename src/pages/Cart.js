@@ -1,167 +1,231 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css";
 
-const Cart = ({ cart, setCart }) => {
+const Cart = () => {
+    const [cartItems, setCartItems] = useState([]);
+    const [error, setError] = useState("");
+    const token = localStorage.getItem("token");
     const navigate = useNavigate();
 
-    const getTotalPrice = () => {
-        return cart.reduce((total, item) => total + (parseFloat(item.Price) * item.Quantity), 0).toFixed(2);
+    useEffect(() => {
+        fetchCartItems();
+    }, []);
+
+    const fetchCartItems = async () => {
+        try {
+            const response = await axios.get("http://localhost:5000/api/cart", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (response.data.cart.length > 0) {
+                setCartItems(response.data.cart);
+            } else {
+                setError("No items in cart.");
+            }
+        } catch (err) {
+            setError("❌ Failed to fetch cart items.");
+        }
     };
 
-    const removeItem = (productID) => {
-        const updatedCart = cart.filter(item => item.ProductID !== productID);
-        setCart(updatedCart);
+    const handleDelete = async (cartID) => {
+        if (!window.confirm("Are you sure you want to remove this item?")) return;
+        try {
+            const response = await axios.delete(`http://localhost:5000/api/cart/${cartID}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (response.data.status === "success") {
+                setCartItems(cartItems.filter(item => item.CartID !== cartID));
+            } else {
+                setError("❌ Failed to remove item.");
+            }
+        } catch (err) {
+            setError("❌ Error removing item from cart.");
+        }
     };
 
-    const clearCart = () => {
-        setCart([]);
+    const handleRemoveAll = async () => {
+        if (!window.confirm("⚠️ Are you sure you want to remove all items from the cart?")) return;
+
+        try {
+            const response = await axios.delete("http://localhost:5000/api/cart", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (response.data.status === "success") {
+                setCartItems([]);
+            } else {
+                setError("❌ Failed to remove all items.");
+            }
+        } catch (err) {
+            setError("❌ Error removing all items.");
+        }
     };
 
-    const handleCheckout = () => {
-        if (cart.length === 0) {
-            alert("❌ Your cart is empty!");
+    const handleCheckout = async () => {
+        if (cartItems.length === 0) {
+            alert("Your cart is empty!");
             return;
         }
 
+        const totalAmount = cartItems.reduce((total, item) => total + (parseFloat(item.Price) * item.Quantity), 0);
+        const customerID = cartItems[0]?.CustomerID || 1;
+
         const orderData = {
-            orderItems: cart,
-            totalAmount: getTotalPrice(),
-            status: "Pending",
+            CustomerID: customerID,
+            TotalPrice: totalAmount,
+            Status: "Pending",
         };
 
-        localStorage.setItem("order", JSON.stringify(orderData));
-        setCart([]);
-        navigate("/orders");
+        try {
+            const orderResponse = await axios.post("http://localhost:5000/api/orders", orderData, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (orderResponse.data.status === "success") {
+                const deleteResponse = await axios.delete("http://localhost:5000/api/cart", {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                if (deleteResponse.data.status === "success") {
+                    setCartItems([]);
+                    navigate(`/orders?id=${orderResponse.data.OrderID}`);
+                }
+            }
+        } catch (err) {
+            setError("❌ Error during checkout.");
+        }
+    };
+
+    const getTotalPrice = () => {
+        return cartItems.reduce((total, item) => total + (parseFloat(item.Price) * item.Quantity), 0).toLocaleString();
     };
 
     return (
         <div style={styles.container}>
-            <h2 style={styles.title}>🛒 Your Shopping Cart</h2>
-            {cart.length === 0 ? (
-                <p style={styles.emptyCart}>Your cart is empty.</p>
-            ) : (
-                <>
-                    <table style={styles.table}>
-                        <thead>
-                            <tr>
-                                <th>Product</th>
-                                <th>Quantity</th>
-                                <th>Price</th>
-                                <th>Total</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {cart.map((item) => (
-                                <tr key={item.ProductID}>
-                                    <td>{item.ProductName}</td>
-                                    <td>{item.Quantity}</td>
-                                    <td>${parseFloat(item.Price).toFixed(2)}</td>
-                                    <td>${(parseFloat(item.Price) * item.Quantity).toFixed(2)}</td>
-                                    <td>
-                                        <button 
-                                            style={styles.btnRemove} 
-                                            onClick={() => removeItem(item.ProductID)}
-                                        >
-                                            ❌ Remove
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    <h3 style={styles.total}>Total Price: ${getTotalPrice()}</h3>
+            <div style={styles.cartBox}>
+                <h2 style={styles.title}>Your Shopping Cart</h2>
 
-                    <div style={styles.buttonContainer}>
-                        <button style={styles.btnBack} onClick={() => navigate("/products")}>🔙 Back to Products</button>
-                        <button style={styles.btnClear} onClick={clearCart}>🗑 Clear Cart</button>
-                        <button style={styles.btnCheckout} onClick={handleCheckout}>💳 Checkout</button>
+                {error && <p className="alert alert-danger text-center">{error}</p>}
+
+                {cartItems.length === 0 ? (
+                    <p style={styles.emptyCart}>Your cart is empty.</p>
+                ) : (
+                    <div className="table-responsive">
+                        <table className="table" style={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th>Product Name</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {cartItems.map((item) => (
+                                    <tr key={item.CartID}>
+                                        <td>{item.ProductName}</td>
+                                        <td>{parseFloat(item.Price).toLocaleString()} บาท</td>
+                                        <td>{item.Quantity}</td>
+                                        <td>{(parseFloat(item.Price) * item.Quantity).toLocaleString()} บาท</td>
+                                        <td>
+                                            <button style={styles.removeButton} onClick={() => handleDelete(item.CartID)}>
+                                                ❌ Remove
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
-                </>
-            )}
+                )}
+
+                <h3 style={styles.totalPrice}>Total Price: {getTotalPrice()} บาท</h3>
+
+                <div className="d-flex justify-content-between mt-4">
+                    <button style={styles.backButton} onClick={() => navigate("/products")}>Back to Products</button>
+                    <button style={styles.removeAllButton} onClick={handleRemoveAll}>Remove All</button>
+                    <button style={styles.checkoutButton} onClick={handleCheckout}>Checkout</button>
+                </div>
+            </div>
         </div>
     );
 };
 
 const styles = {
     container: {
-        maxWidth: "900px",
-        margin: "40px auto",
-        textAlign: "center",
+        backgroundColor: "#121212",
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "40px 0",
+    },
+    cartBox: {
         backgroundColor: "#1e1e1e",
-        padding: "20px",
-        borderRadius: "10px",
         color: "#fff",
-        boxShadow: "0 4px 8px rgba(255, 255, 255, 0.1)",
+        maxWidth: "900px",
+        padding: "30px",
+        borderRadius: "12px",
+        boxShadow: "0px 4px 10px rgba(255, 255, 255, 0.1)",
     },
     title: {
-        fontSize: "2rem",
-        fontWeight: "bold",
-        marginBottom: "20px",
         color: "#ffcc00",
+        fontSize: "1.8rem",
+        fontWeight: "bold",
+        textAlign: "center",
+        marginBottom: "20px",
     },
     emptyCart: {
-        fontSize: "1.2rem",
-        color: "#e63946",
+        textAlign: "center",
+        fontSize: "1.2em",
+        color: "#ffcc00",
     },
     table: {
-        width: "100%",
-        borderCollapse: "collapse",
-        backgroundColor: "#333",
+        backgroundColor: "#1e1e1e",
         color: "#fff",
-        borderRadius: "10px",
-        overflow: "hidden",
+        border: "1px solid #fff",
     },
-    total: {
+    totalPrice: {
+        textAlign: "right",
+        color: "#ff9900",
         fontSize: "1.5rem",
         fontWeight: "bold",
         marginTop: "20px",
-        color: "#ffcc00",
     },
-    buttonContainer: {
-        marginTop: "20px",
-        display: "flex",
-        justifyContent: "center",
-        gap: "15px",
-    },
-    btnBack: {
-        background: "#457b9d",
-        color: "white",
-        border: "none",
-        padding: "10px 15px",
-        cursor: "pointer",
-        borderRadius: "8px",
-        fontSize: "1rem",
-        transition: "0.3s",
-    },
-    btnClear: {
-        background: "#e63946",
-        color: "white",
-        border: "none",
-        padding: "10px 15px",
-        cursor: "pointer",
-        borderRadius: "8px",
-        fontSize: "1rem",
-        transition: "0.3s",
-    },
-    btnCheckout: {
-        background: "#1d3557",
-        color: "white",
-        border: "none",
-        padding: "10px 15px",
-        cursor: "pointer",
-        borderRadius: "8px",
-        fontSize: "1rem",
-        transition: "0.3s",
-    },
-    btnRemove: {
-        background: "#e63946",
-        color: "white",
+    removeButton: {
+        backgroundColor: "#ff9900",
         border: "none",
         padding: "5px 10px",
-        cursor: "pointer",
         borderRadius: "5px",
-        fontSize: "0.9rem",
+        color: "#fff",
+        cursor: "pointer",
+    },
+    backButton: {
+        backgroundColor: "#6c757d",
+        color: "#fff",
+        padding: "10px",
+        borderRadius: "5px",
+        border: "none",
+        cursor: "pointer",
+    },
+    removeAllButton: {
+        backgroundColor: "#dc3545",
+        color: "#fff",
+        padding: "10px",
+        borderRadius: "5px",
+        border: "none",
+        cursor: "pointer",
+    },
+    checkoutButton: {
+        backgroundColor: "#28a745",
+        color: "#fff",
+        padding: "10px",
+        borderRadius: "5px",
+        border: "none",
+        cursor: "pointer",
     },
 };
 

@@ -1,110 +1,156 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css";
 
-function Products({ cart, setCart }) { // รับ cart และ setCart จาก props
-  const [products, setProducts] = useState([
-    { ProductID: 1, ProductName: "โทรศัพท์มือถือ", Price: 12900 },
-    { ProductID: 2, ProductName: "แล็ปท็อป", Price: 35900 },
-    { ProductID: 3, ProductName: "เครื่องซักผ้า", Price: 8900 },
-    { ProductID: 4, ProductName: "ลิปสติก", Price: 350 },
-    { ProductID: 5, ProductName: "เสื้อยืด", Price: 199 }
-  ]);
-  const [error, setError] = useState("");
+const Products = () => {
+    const [products, setProducts] = useState([]);
+    const [quantity, setQuantity] = useState({});
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
+    const token = localStorage.getItem("token");
+    const navigate = useNavigate();
 
-  const addToCart = (product) => {
-    if (!product || !product.ProductID) {
-      alert("Invalid product data");
-      return;
-    }
+    useEffect(() => {
+        axios.get("http://localhost:5000/api/products", {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        .then((res) => setProducts(res.data.products))
+        .catch(() => setError("Unauthorized access. Please login."));
+    }, [token]);
 
-    setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.ProductID === product.ProductID);
-      if (existingItem) {
-        return prevCart.map((item) =>
-          item.ProductID === product.ProductID ? { ...item, Quantity: item.Quantity + 1 } : item
-        );
-      } else {
-        return [...prevCart, { ...product, Quantity: 1 }];
-      }
-    });
+    const handleQuantityChange = (productID, value) => {
+        setQuantity((prev) => ({ ...prev, [productID]: value }));
+    };
 
-    alert("Product added to cart!");
-  };
+    const handleAddToCart = async (product) => {
+        const selectedQuantity = quantity[product.ProductID] || 1;
+        try {
+            const cartData = { 
+                ProductID: product.ProductID, 
+                Quantity: selectedQuantity, 
+                CustomerID: 1
+            };
 
-  return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>Products</h2>
-      {error ? (
-        <p style={styles.error}>{error}</p>
-      ) : (
-        <div style={styles.grid}>
-          {products.map((p) => (
-            <div key={p.ProductID} style={styles.card}>
-              <h3 style={styles.productName}>{p.ProductName}</h3>
-              <p style={styles.price}>${p.Price.toFixed(2)}</p>
-              <button style={styles.button} onClick={() => addToCart(p)}>Add to Cart</button>
+            console.log("Adding to Cart:", cartData);
+
+            const response = await axios.post(
+                "http://localhost:5000/api/cart",
+                cartData,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (response.data.status === "success") {
+                setSuccess("Item added to cart!");
+            } else {
+                setError("Failed to add item to cart.");
+            }
+        } catch (err) {
+            setError("Error adding item to cart.");
+        }
+
+        setTimeout(() => {
+            setSuccess("");
+            setError("");
+        }, 2000);
+    };
+
+    return (
+        <div style={styles.container}>
+            <div className="container my-5 p-4 rounded shadow-lg" style={styles.card}>
+                <h2 className="text-center fw-bold mb-4" style={styles.title}>Products</h2>
+
+                {success && <p className="alert alert-success text-center">{success}</p>}
+                {error && <p className="alert alert-warning text-center">{error}</p>}
+
+                <div className="row">
+                    {products.map((p) => (
+                        <div key={p.ProductID} className="col-lg-3 col-md-6 mb-3">
+                            <div className="card shadow-sm p-2 border-0" style={styles.productCard}>
+                                <div className="card-body">
+                                    <h5 className="fw-bold" style={styles.productName}>{p.ProductName}</h5>
+                                    <p style={styles.description}>{p.Description}</p>
+                                    <p className="fw-bold fs-5" style={styles.price}>{parseFloat(p.Price).toLocaleString()} บาท</p>
+                                    
+                                    <div className="mb-3">
+                                        <label className="form-label" style={styles.label}>จำนวน:</label>
+                                        <input 
+                                            type="number" 
+                                            className="form-control bg-dark text-light" 
+                                            value={quantity[p.ProductID] || 1} 
+                                            min="1"
+                                            onChange={(e) => handleQuantityChange(p.ProductID, parseInt(e.target.value))}
+                                        />
+                                    </div>
+
+                                    <button 
+                                        className="btn w-100"
+                                        style={styles.button}
+                                        onClick={() => handleAddToCart(p)}
+                                    >
+                                        Add to Cart
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
-          ))}
         </div>
-      )}
-    </div>
-  );
-}
+    );
+};
 
-// Styling for dark theme
 const styles = {
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: "100vh",
-    backgroundColor: "#121212",
-    color: "#fff",
-    padding: "20px",
-  },
-  title: {
-    fontSize: "2rem",
-    marginBottom: "20px",
-  },
-  error: {
-    color: "#ff5555",
-    fontSize: "1.1rem",
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-    gap: "20px",
-    width: "90%",
-    maxWidth: "1000px",
-  },
-  card: {
-    backgroundColor: "#1e1e1e",
-    padding: "20px",
-    borderRadius: "10px",
-    boxShadow: "0 4px 8px rgba(255, 255, 255, 0.1)",
-    textAlign: "center",
-    transition: "transform 0.2s ease, box-shadow 0.3s ease",
-  },
-  productName: {
-    fontSize: "1.5rem",
-    marginBottom: "10px",
-    color: "#fff",
-  },
-  price: {
-    fontSize: "1.2rem",
-    marginBottom: "10px",
-    color: "#ffcc00",
-  },
-  button: {
-    padding: "8px 12px",
-    backgroundColor: "#ff9900",
-    color: "#121212",
-    border: "none",
-    borderRadius: "5px",
-    cursor: "pointer",
-    fontWeight: "bold",
-    transition: "background-color 0.3s ease",
-  },
+    container: {
+        backgroundColor: "#121212",
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "40px 0",
+    },
+    card: {
+        backgroundColor: "#1e1e1e",
+        color: "#fff",
+        maxWidth: "1000px",
+        padding: "20px",
+        borderRadius: "12px",
+        boxShadow: "0px 4px 10px rgba(255, 255, 255, 0.1)",
+    },
+    title: {
+        color: "#ffcc00",
+        fontSize: "1.8rem",
+        fontWeight: "bold",
+        textAlign: "center",
+    },
+    productCard: {
+        backgroundColor: "#2b2b2b",
+        borderRadius: "10px",
+        padding: "15px",
+        color: "#fff",
+    },
+    productName: {
+        color: "#ffcc00",
+    },
+    description: {
+        color: "#ffffff", // คำอธิบายสินค้าเป็นสีขาว
+    },
+    price: {
+        color: "#ffcc00",
+    },
+    label: {
+        color: "#ffcc00",
+    },
+    button: {
+        backgroundColor: "#ff9900",
+        color: "#000",
+        padding: "10px",
+        borderRadius: "5px",
+        fontWeight: "bold",
+        border: "none",
+        cursor: "pointer",
+        transition: "0.3s",
+    }
 };
 
 export default Products;
