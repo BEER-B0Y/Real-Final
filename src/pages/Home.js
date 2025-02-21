@@ -6,7 +6,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 function Home() {
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>Welcome to MyShop</h1>
+      <h1 style={styles.title}>Welcome to 🌞SunShop</h1>
       <p style={styles.subtitle}>Your one-stop shop for amazing products!</p>
       <nav style={styles.nav}>
         <Link to="/products" style={styles.button}>View Products</Link>

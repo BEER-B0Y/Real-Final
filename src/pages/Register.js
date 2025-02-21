@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { motion } from "framer-motion";
 
 function Register() {
   const [fullName, setFullName] = useState("");
@@ -24,96 +23,104 @@ function Register() {
   return (
     <div style={styles.container}>
       <div style={styles.registerBox}>
-        <h2 style={styles.title}>Sign Up</h2>
+        <h2 style={styles.title}>📝 Register</h2>
         <form onSubmit={handleRegister}>
-          <div style={styles.inputContainer}>
-            <input
-              type="text"
-              placeholder="Full Name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
+          <div className="mb-3">
+            <label htmlFor="fullName" className="form-label" style={styles.label}>Full Name</label>
+            <input 
+              type="text" 
+              className="form-control" 
+              id="fullName" 
+              placeholder="Enter your full name" 
+              value={fullName} 
+              onChange={(e) => setFullName(e.target.value)} 
+              required 
               style={styles.input}
             />
           </div>
-          <div style={styles.inputContainer}>
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+          <div className="mb-3">
+            <label htmlFor="email" className="form-label" style={styles.label}>Email</label>
+            <input 
+              type="email" 
+              className="form-control" 
+              id="email" 
+              placeholder="Enter your email" 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              required 
               style={styles.input}
             />
           </div>
-          <div style={styles.inputContainer}>
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
+          <div className="mb-3">
+            <label htmlFor="password" className="form-label" style={styles.label}>Password</label>
+            <input 
+              type="password" 
+              className="form-control" 
+              id="password" 
+              placeholder="Enter your password" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              required 
               style={styles.input}
             />
           </div>
-          <motion.button
-            type="submit"
+          <button 
+            type="submit" 
+            className="btn btn-primary w-100"
             style={styles.button}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
           >
             Register
-          </motion.button>
+          </button>
         </form>
       </div>
     </div>
   );
 }
 
-// ✅ ธีมมืดแบบเรียบง่าย ไม่มี Glow หรือเอฟเฟกต์พิเศษ
 const styles = {
   container: {
+    position: "relative",
     width: "100%",
     height: "100vh",
-    backgroundColor: "#121212",
+    backgroundColor: "#121212", // Dark background
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
   },
   registerBox: {
-    backgroundColor: "#1e1e1e",
-    padding: "2.5rem",
-    borderRadius: "10px",
-    maxWidth: "380px",
-    width: "100%",
+    backgroundColor: "#1e1e1e", // Light black background for contrast
+    padding: "3rem",
+    borderRadius: "12px",
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
+    maxWidth: "400px",
+    width: "90%",
     textAlign: "center",
   },
   title: {
-    color: "#ffcc00",
-    fontSize: "1.8rem",
+    color: "#ffcc00", // Golden color for the title
+    fontSize: "2rem",
     fontWeight: "bold",
     marginBottom: "1.5rem",
   },
-  inputContainer: {
-    marginBottom: "1rem",
+  label: {
+    color: "#ffcc00", // Golden color for the labels
   },
   input: {
     width: "100%",
     padding: "12px",
     borderRadius: "8px",
     border: "1px solid #333",
-    backgroundColor: "#252525",
+    backgroundColor: "#2a2a2a",
     color: "#fff",
     fontSize: "1rem",
     outline: "none",
   },
   button: {
-    width: "100%",
+    backgroundColor: "#ff9900", // Orange button for action
+    color: "#fff",
     padding: "12px",
     borderRadius: "8px",
     border: "none",
-    backgroundColor: "#ff9900",
-    color: "#fff",
     fontSize: "1rem",
     fontWeight: "bold",
     cursor: "pointer",

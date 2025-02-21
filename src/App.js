@@ -54,7 +54,7 @@ function App() {
             {/* ✅ Navbar Bootstrap with enhanced UI */}
             <nav className="navbar navbar-expand-lg navbar-dark custom-navbar shadow-sm">
                 <div className="container">
-                    <Link className="navbar-brand fw-bold text-light" to="/">Sunny Shop</Link>
+                    <Link className="navbar-brand fw-bold text-light" to="/">🌞SunShop</Link>
                     <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                         <span className="navbar-toggler-icon"></span>
                     </button>

@@ -1,225 +1,202 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import "bootstrap/dist/css/bootstrap.min.css";
 import axios from "axios";
+import { Container, Table, Alert, Spinner, Button, Modal, Form } from "react-bootstrap";
 
-const OrdersAndPayment = () => {
-    const [orders, setOrders] = useState([]);
-    const [selectedOrderID, setSelectedOrderID] = useState("");
-    const [orderDetails, setOrderDetails] = useState(null);
-    const [paymentMethod, setPaymentMethod] = useState("");
-    const [error, setError] = useState("");
-    const token = localStorage.getItem("token");
-    const navigate = useNavigate();
+function Orders() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedOrderID, setSelectedOrderID] = useState(null);
+  const [selectedTotalPrice, setSelectedTotalPrice] = useState(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("Credit Card");
+  const token = localStorage.getItem("token");
 
-    useEffect(() => {
-        fetchOrders();
-    }, []);
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
-    const fetchOrders = async () => {
-        try {
-            const response = await axios.get("http://localhost:5000/api/orders/4", {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+  const fetchOrders = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/api/orders", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.data.orders.length === 0) {
+        setError("No orders found.");
+      } else {
+        setOrders(response.data.orders);
+      }
+    } catch (err) {
+      setError("❌ Failed to load orders.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-            if (response.data.orders.length > 0) {
-                setOrders(response.data.orders);
-            } else {
-                setError("❌ No orders found.");
-            }
-        } catch (err) {
-            setError("❌ Failed to fetch orders.");
-        }
+  const groupedOrders = orders.reduce((acc, order) => {
+    if (!acc[order.OrderID]) {
+      acc[order.OrderID] = [];
+    }
+    acc[order.OrderID].push(order);
+    return acc;
+  }, {});
+
+  const openPaymentModal = (orderID, totalPrice) => {
+    setSelectedOrderID(orderID);
+    setSelectedTotalPrice(totalPrice);
+    setShowPaymentModal(true);
+  };
+
+  const handlePayment = async () => {
+    if (!selectedPaymentMethod) {
+      alert("❌ Please select a payment method.");
+      return;
+    }
+
+    const paymentData = {
+      OrderID: selectedOrderID,
+      PaymentMethod: selectedPaymentMethod,
+      Amount: selectedTotalPrice,
     };
 
-    const fetchOrderDetails = async (orderID) => {
-        try {
-            const response = await axios.get(`http://localhost:5000/api/orders/order/${orderID}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            if (response.data.OrderID) {
-                setOrderDetails(response.data);
-                setError("");
-            } else {
-                setError("❌ Order not found.");
-                setOrderDetails(null);
-            }
-        } catch (err) {
-            setError("❌ Failed to fetch order details.");
+    setPaymentProcessing(true);
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/payments",
+        paymentData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
         }
-    };
+      );
+      alert("✅ Payment Successful!");
+      setShowPaymentModal(false);
+      fetchOrders();
+    } catch (err) {
+      setError("❌ Payment failed. Please try again.");
+    } finally {
+      setPaymentProcessing(false);
+    }
+  };
 
-    const handlePayment = async () => {
-        if (!selectedOrderID) {
-            alert("❌ Please select an Order!");
-            return;
-        }
-        if (!paymentMethod) {
-            alert("❌ Please select a payment method!");
-            return;
-        }
+  return (
+    <Container className="mt-4" style={styles.container}>
+      <h2 className="text-center mb-4" style={styles.title}>📦 My Orders</h2>
 
-        const paymentData = {
-            OrderID: selectedOrderID,
-            PaymentMethod: paymentMethod,
-            Amount: orderDetails.TotalPrice,
-            PaymentDate: new Date().toISOString().slice(0, 19).replace("T", " "), 
-            Status: "Completed"
-        };
-
-        try {
-            const response = await axios.post("http://localhost:5000/api/payments", paymentData, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            if (response.data.status === "success") {
-                alert("✅ Payment Successful!");
-
-                await axios.put(`http://localhost:5000/api/orders/${selectedOrderID}`, { Status: "Completed" }, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-
-                fetchOrders();
-                fetchOrderDetails(selectedOrderID);
-            } else {
-                setError("❌ Failed to complete payment.");
-            }
-        } catch (err) {
-            setError("❌ Error processing payment.");
-        }
-    };
-
-    return (
-        <div style={styles.container}>
-            <div className="container my-5 p-4 rounded shadow-lg" style={styles.card}>
-                <h2 className="text-center fw-bold mb-4" style={styles.title}>
-                    Order & Payment
-                </h2>
-
-                {error && <p className="alert alert-danger text-center">{error}</p>}
-
-                <div className="mb-4">
-                    <label className="fw-bold" style={{ color: "#ffcc00" }}>Select Order ID:</label>
-                    <select 
-                        className="form-select bg-dark text-light"
-                        value={selectedOrderID}
-                        onChange={(e) => {
-                            setSelectedOrderID(e.target.value);
-                            fetchOrderDetails(e.target.value);
-                        }}
-                    >
-                        <option value="">-- Select Order --</option>
-                        {orders.map((order) => (
-                            <option key={order.OrderID} value={order.OrderID}>
-                                Order {order.OrderID} - {new Date(order.OrderDate).toLocaleString()}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                {orderDetails && (
-                    <>
-                        <div className="p-3 mb-4 rounded shadow-sm" style={styles.orderDetails}>
-                            <h4 className="text-center fw-bold" style={{ color: "#ffcc00" }}>Order Information</h4>
-                            <p className="mb-1"><strong>Order ID:</strong> {orderDetails.OrderID}</p>
-                            <p className="mb-1"><strong>Total Price:</strong> {parseFloat(orderDetails.TotalPrice).toLocaleString()} บาท</p>
-                            <p className="mb-1">
-                                <strong>Status:</strong> 
-                                <span className="badge ms-2" style={getStatusStyle(orderDetails.Status)}>
-                                    {orderDetails.Status}
-                                </span>
-                            </p>
-                        </div>
-
-                        {orderDetails.Status !== "Completed" ? (
-                            <>
-                                <p className="text-center text-light">Please select your preferred payment method:</p>
-                                <div className="d-flex flex-column gap-3 my-4">
-                                    {["Credit Card", "PayPal", "Bank Transfer"].map((method) => (
-                                        <label 
-                                            key={method} 
-                                            className="d-flex align-items-center p-3 rounded border bg-dark text-light"
-                                            style={styles.option}
-                                        >
-                                            <input 
-                                                type="radio" 
-                                                name="paymentMethod" 
-                                                value={method}
-                                                className="me-2"
-                                                onChange={(e) => setPaymentMethod(e.target.value)}
-                                            /> 
-                                            {method}
-                                        </label>
-                                    ))}
-                                </div>
-
-                                <div className="d-flex justify-content-center mt-4">
-                                    <button 
-                                        className="btn btn-lg"
-                                        style={styles.btnPayment}
-                                        onClick={handlePayment}
-                                    >
-                                        ✅ Complete Payment
-                                    </button>
-                                </div>
-                            </>
-                        ) : (
-                            <p className="text-center text-success fw-bold">This order has already been paid.</p>
-                        )}
-                    </>
-                )}
-            </div>
+      {loading ? (
+        <div className="text-center">
+          <Spinner animation="border" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </Spinner>
         </div>
-    );
-};
+      ) : error ? (
+        <Alert variant="danger" className="text-center" style={styles.alert}>{error}</Alert>
+      ) : (
+        <Table striped bordered hover style={styles.table}>
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Order Date</th>
+              <th>Total Price</th>
+              <th>Status</th>
+              <th>Products</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.keys(groupedOrders).map((orderID) => {
+              const orderGroup = groupedOrders[orderID];
+              const totalPrice = orderGroup.reduce(
+                (sum, order) => sum + parseFloat(order.TotalPrice),
+                0
+              );
+              return (
+                <tr key={orderID}>
+                  <td>{orderID}</td>
+                  <td>{new Date(orderGroup[0].OrderDate).toLocaleString()}</td>
+                  <td>{totalPrice.toLocaleString()} บาท</td>
+                  <td>
+                    {orderGroup[0].Status === "Pending" ? (
+                      <span className="badge bg-warning text-dark">🕒 Pending</span>
+                    ) : (
+                      <span className="badge bg-success">✅ Paid</span>
+                    )}
+                  </td>
+                  <td>
+                    {orderGroup.map((order) => (
+                      <div key={order.ProductID}>
+                        <p>{order.ProductName} x {order.Quantity}</p>
+                      </div>
+                    ))}
+                  </td>
+                  <td>
+                    {orderGroup[0].Status === "Pending" ? (
+                      <Button variant="success" onClick={() => openPaymentModal(orderGroup[0].OrderID, totalPrice)}>
+                        💳 Pay Now
+                      </Button>
+                    ) : (
+                      <span className="text-muted">✔️ Already Paid</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </Table>
+      )}
 
-const getStatusStyle = (status) => ({
-    backgroundColor: status === "Completed" ? "#2a9d8f" : "#ff9900",
-    color: "white", padding: "8px 12px", borderRadius: "5px"
-});
+      {/* Payment Modal */}
+      <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>💰 Select Payment Method</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Order ID: {selectedOrderID}</p>
+          <p>Total: {selectedTotalPrice?.toLocaleString()} บาท</p>
+          <Form.Group>
+            <Form.Label>Choose Payment Method</Form.Label>
+            <Form.Select
+              value={selectedPaymentMethod}
+              onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+            >
+              <option value="Credit Card">💳 Credit Card</option>
+              <option value="PayPal">🅿️ PayPal</option>
+              <option value="Bank Transfer">🏦 Bank Transfer</option>
+            </Form.Select>
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowPaymentModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="success" onClick={handlePayment} disabled={paymentProcessing}>
+            {paymentProcessing ? "Processing..." : "Confirm Payment"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </Container>
+  );
+}
 
 const styles = {
-    container: {
-        backgroundColor: "#121212",
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    card: {
-        backgroundColor: "#1e1e1e",
-        color: "#fff",
-        maxWidth: "600px",
-        padding: "20px",
-        borderRadius: "12px",
-        boxShadow: "0px 4px 10px rgba(255, 255, 255, 0.1)",
-    },
-    title: {
-        color: "#ffcc00",
-        fontSize: "1.8rem",
-        fontWeight: "bold",
-        textAlign: "center",
-    },
-    orderDetails: {
-        backgroundColor: "#2b2b2b",
-        borderRadius: "10px",
-        padding: "15px",
-        color: "#fff"
-    },
-    option: {
-        fontSize: "1.2rem",
-        cursor: "pointer",
-    },
-    btnPayment: {
-        backgroundColor: "#ff9900",
-        color: "black",
-        padding: "12px 20px",
-        borderRadius: "10px",
-        fontSize: "1.2rem",
-        border: "none",
-        cursor: "pointer"
-    }
+  container: {
+    backgroundColor: "#121212", // Dark background
+    color: "#fff",
+    minHeight: "100vh",
+    padding: "20px 0",
+  },
+  title: {
+    color: "#ffcc00", // Golden color for title
+    fontSize: "2rem",
+    fontWeight: "bold",
+  },
+  table: {
+    backgroundColor: "#1e1e1e", // Light dark background for the table
+    color: "#fff",
+  },
+  alert: {
+    color: "#ffcc00", // Gold color for the error alert
+  },
 };
 
-export default OrdersAndPayment;
+export default Orders;
